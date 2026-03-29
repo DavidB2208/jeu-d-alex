@@ -1,0 +1,14 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 420'>
+  <rect width='240' height='420' fill='none'/>
+  <circle cx='120' cy='58' r='28' fill='#f0c7a6'/>
+  <path d='M88 42c8-24 54-24 64 0v22H88z' fill='#111'/>
+  <rect x='74' y='84' width='92' height='124' rx='26' fill='#1b1d21'/>
+  <rect x='86' y='205' width='28' height='124' rx='14' fill='#2b3038'/>
+  <rect x='126' y='205' width='28' height='124' rx='14' fill='#2b3038'/>
+  <rect x='70' y='118' width='24' height='110' rx='12' fill='#f0c7a6'/>
+  <rect x='146' y='118' width='24' height='110' rx='12' fill='#f0c7a6'/>
+  <rect x='82' y='329' width='34' height='26' rx='10' fill='#16181c'/>
+  <rect x='124' y='329' width='34' height='26' rx='10' fill='#16181c'/>
+  <rect x='84' y='154' width='18' height='34' rx='6' fill='#58bfff'/>
+  <rect x='150' y='178' width='10' height='24' rx='5' fill='#ddd'/>
+</svg>
