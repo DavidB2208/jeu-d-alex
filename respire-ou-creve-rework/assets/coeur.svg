@@ -1,0 +1,5 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 260'>
+  <rect width='260' height='260' fill='none'/>
+  <path d='M130 232C44 178 19 133 19 87c0-31 24-55 54-55 23 0 42 14 57 31 15-17 34-31 57-31 30 0 54 24 54 55 0 46-25 91-111 145z' fill='#e22f3f' stroke='#8f1020' stroke-width='8'/>
+  <path d='M80 132c22-18 59-13 92 15' stroke='#ffbfcb' stroke-width='6' fill='none' opacity='.7'/>
+</svg>
