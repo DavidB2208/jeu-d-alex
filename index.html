@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Respire ou Crève</title>
+<style>
+:root{
+  --bg:#070809;
+  --panel:#101217;
+  --panel-2:#161920;
+  --line:rgba(214,188,146,.16);
+  --text:#f1eee7;
+  --muted:#b8b3aa;
+  --red:#ff5555;
+  --red2:#ff8b8b;
+  --blue:#67d8ff;
+  --green:#82f2aa;
+  --gold:#d9b983;
+  --shadow:0 18px 42px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;height:100%;
+  color:var(--text);
+  font-family:Georgia,"Times New Roman",serif;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(176,12,12,.12), transparent 20%),
+    radial-gradient(circle at 84% 12%, rgba(0,124,155,.12), transparent 20%),
+    linear-gradient(180deg,#0b0c0f,#050607 55%,#020203);
+  overflow:hidden;
+}
+body::before{
+  content:"";
+  position:fixed; inset:0; pointer-events:none;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.015) 0 1px, transparent 1px 64px),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.01) 0 1px, transparent 1px 50px),
+    radial-gradient(circle at center, transparent 35%, rgba(0,0,0,.28) 82%);
+  opacity:.38;
+}
+#game{
+  height:100vh;
+  display:grid;
+  grid-template-columns:350px 1fr 470px;
+  gap:12px;
+  padding:12px;
+}
+.panel{
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(180deg, rgba(14,16,20,.96), rgba(8,9,11,.92));
+  border:1px solid var(--line);
+  box-shadow:var(--shadow), inset 0 0 0 1px rgba(255,255,255,.03);
+}
+.panel::before{
+  content:"";
+  position:absolute; inset:0; pointer-events:none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03), transparent 14%, transparent 86%, rgba(255,255,255,.02)),
+    radial-gradient(circle at 28% 20%, rgba(255,255,255,.03), transparent 18%);
+}
+.wood-header{
+  position:relative; z-index:2;
+  padding:14px 18px;
+  font-size:28px;
+  text-shadow:0 2px 0 rgba(0,0,0,.5);
+  background:linear-gradient(180deg,#422c1f,#291a12 48%,#16100b);
+  border-bottom:1px solid rgba(214,188,146,.18);
+}
+.left-panel{display:flex; flex-direction:column}
+.stats-wrap{padding:18px; display:flex; flex-direction:column; gap:14px; position:relative; z-index:2}
+.title-block h1{margin:0; font-size:29px}
+.subtitle{margin-top:6px; color:var(--muted); font-size:14px; line-height:1.35}
+.big-stat,.effects-box,.controls,.achievements{
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;
+}
+.big-stat{padding:16px}
+.hp-line{display:flex; justify-content:space-between; align-items:flex-end; gap:8px; flex-wrap:wrap}
+.hp-number{font-size:52px; line-height:.9; color:var(--red); font-weight:700; text-shadow:0 0 14px rgba(255,85,85,.2)}
+.hp-sub{font-size:14px; color:var(--muted)}
+.hp-bar{
+  margin-top:10px;
+  height:18px; border-radius:999px; overflow:hidden;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:inset 0 8px 14px rgba(0,0,0,.34);
+}
+#hpFill{
+  height:100%; width:42%;
+  background:linear-gradient(90deg,#7d1010,#da2b2b 58%,#ff6f6f);
+  transition:width .16s ease, filter .16s ease;
+}
+.critical #hpFill{animation:barPulse .6s infinite alternate}
+@keyframes barPulse{from{filter:brightness(.92)} to{filter:brightness(1.18)}}
+.mini-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.mini-card{
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:12px;
+  padding:12px;
+}
+.label{font-size:13px; color:var(--muted); margin-bottom:6px}
+.value{font-size:23px; font-weight:700}
+.value.blue{color:var(--blue)}
+.value.green{color:var(--green)}
+.value.gold{color:var(--gold)}
+
+#lungButton{
+  position:relative;
+  width:314px; height:314px;
+  margin:6px auto 0;
+  border:0; cursor:pointer; border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255,255,255,.09), transparent 22%),
+    radial-gradient(circle at 50% 50%, rgba(255,65,65,.16), rgba(20,0,0,.12) 45%, transparent 76%),
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.08),
+    0 0 76px rgba(255,80,80,.18),
+    inset 0 -24px 45px rgba(0,0,0,.46),
+    inset 0 14px 28px rgba(255,255,255,.03);
+  transition:transform .06s ease, filter .12s ease;
+  overflow:hidden;
+}
+#lungButton:hover{filter:brightness(1.05)}
+#lungButton:active,#lungButton.clicked{transform:scale(.97)}
+#lungButton::before{
+  content:"";
+  position:absolute; inset:12px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.07);
+}
+.lung-inner{
+  position:absolute; inset:24px; border-radius:50%;
+  display:grid; place-items:center;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255,255,255,.05), transparent 22%),
+    radial-gradient(circle at center, rgba(255,0,0,.10), transparent 58%);
+}
+.lung-ring{
+  position:absolute; inset:24px; border-radius:50%;
+  border:1px dashed rgba(255,130,130,.18);
+  animation:ring 2.2s ease-in-out infinite;
+}
+@keyframes ring{0%,100%{transform:scale(.98);opacity:.24}50%{transform:scale(1.04);opacity:.42}}
+.lung-svg{width:82%; height:82%; filter:drop-shadow(0 8px 22px rgba(124,0,16,.65)); animation:breath 2.2s ease-in-out infinite}
+@keyframes breath{0%,100%{transform:scale(.97)}50%{transform:scale(1.035)}}
+.click-caption{text-align:center; color:var(--muted); margin-top:10px; font-size:15px}
+
+.controls,.effects-box,.achievements{padding:14px; margin:0 18px 18px; position:relative; z-index:2}
+.controls h3,.effects-box h3,.achievements h3,.shop-title{margin:0 0 10px; font-size:18px}
+.control-buttons{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+button{font-family:inherit}
+.control-btn,.tab-btn,.buy-btn,.action-btn{
+  cursor:pointer; color:var(--text);
+  border:1px solid rgba(255,255,255,.1);
+  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  transition:filter .12s ease, transform .05s ease, border-color .12s ease;
+}
+.control-btn:hover,.tab-btn:hover,.buy-btn:hover,.action-btn:hover{filter:brightness(1.08); border-color:rgba(255,255,255,.18)}
+.control-btn:active,.tab-btn:active,.buy-btn:active,.action-btn:active{transform:translateY(1px)}
+.control-btn{
+  border-radius:10px; padding:11px 12px; text-align:left; min-height:58px;
+}
+.control-btn small{display:block; color:var(--muted); margin-top:4px}
+.control-btn.good{border-color:rgba(130,242,170,.18)}
+.control-btn.bad{border-color:rgba(255,123,123,.18)}
+.control-btn.warn{border-color:rgba(217,185,131,.2)}
+.buy-btn[disabled],.control-btn[disabled],.action-btn[disabled]{
+  opacity:.45; cursor:not-allowed; filter:none !important
+}
+
+#effectsList{display:flex; gap:8px; flex-wrap:wrap}
+.effect-pill{
+  padding:7px 10px; border-radius:999px; font-size:13px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  color:var(--muted)
+}
+.effect-pill.good{color:var(--green); border-color:rgba(130,242,170,.2)}
+.effect-pill.bad{color:var(--red2); border-color:rgba(255,123,123,.2)}
+.effect-pill.neutral{color:var(--blue); border-color:rgba(103,216,255,.2)}
+#achievementList{display:grid; gap:8px; max-height:175px; overflow:auto}
+.achievement{
+  border-radius:10px; padding:10px;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.03);
+  font-size:14px;
+}
+.achievement.locked{opacity:.55}
+
+.center-panel{position:relative}
+.stage{
+  position:absolute; inset:0;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.18), transparent 18%, transparent 72%, rgba(0,0,0,.32)),
+    radial-gradient(circle at 60% 18%, rgba(255,255,255,.03), transparent 22%),
+    linear-gradient(180deg,#111418 0%, #0f1114 44%, #090a0c 100%);
+}
+.stage::before{
+  content:"";
+  position:absolute; inset:0;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.012) 0 1px, transparent 1px 62px),
+    radial-gradient(circle at 58% 28%, rgba(255,255,255,.04), transparent 10%);
+}
+.decor-shelf{
+  position:absolute; left:8%; right:18%; top:16%;
+  height:140px;
+  border:1px solid rgba(214,188,146,.16);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
+    linear-gradient(180deg, rgba(80,51,31,.28), rgba(37,22,16,.46));
+  box-shadow:inset 0 -50px 0 rgba(0,0,0,.18);
+}
+.decor-floor{
+  position:absolute; left:0; right:0; bottom:0; height:34%;
+  background:linear-gradient(180deg,#20140f,#0d0c0c 68%);
+  border-top:1px solid rgba(214,188,146,.16);
+}
+.scrap{position:absolute; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); opacity:.5}
+.scrap.s1{left:16%;top:29%;width:42px;height:62px}
+.scrap.s2{left:23%;top:34%;width:90px;height:30px}
+.scrap.s3{left:31%;bottom:19%;width:56px;height:56px}
+.scrap.s4{left:48%;top:26%;width:65px;height:50px}
+.scrap.s5{left:62%;bottom:18%;width:38px;height:70px}
+.cookie{position:absolute;width:18px;height:18px;border-radius:50%;background:#8b6740;box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
+.cookie::before,.cookie::after{content:"";position:absolute;border-radius:50%;background:#3d2619}
+.cookie::before{width:4px;height:4px;left:4px;top:5px}
+.cookie::after{width:5px;height:5px;right:3px;bottom:4px}
+.cookie.c1{left:8%;top:11%}.cookie.c2{left:65%;top:14%}.cookie.c3{left:58%;top:72%}.cookie.c4{left:30%;top:55%}
+.stage-topbar{
+  position:absolute; left:16px; right:16px; top:14px; z-index:8;
+  padding:10px 14px; border-radius:12px;
+  background:rgba(0,0,0,.26);
+  border:1px solid rgba(255,255,255,.06);
+  color:var(--muted); font-size:15px;
+}
+#stageMessage{color:var(--text)}
+.alex-wrap{
+  position:absolute; right:90px; bottom:0;
+  height:min(88vh,930px); z-index:5; pointer-events:none;
+  filter:drop-shadow(0 18px 22px rgba(0,0,0,.5));
+}
+.alex-wrap img{height:100%; width:auto; display:block; object-fit:contain}
+#spawnLayer{position:absolute; inset:0; z-index:9; pointer-events:none}
+.float-text{
+  position:absolute;
+  font-weight:700;
+  white-space:nowrap;
+  text-shadow:0 2px 6px rgba(0,0,0,.55);
+  animation:floatUp 1.15s ease forwards;
+}
+.float-text.good{color:var(--green)}
+.float-text.bad{color:var(--red2)}
+.float-text.blue{color:var(--blue)}
+.float-text.gold{color:var(--gold)}
+@keyframes floatUp{
+  0%{transform:translateY(0) scale(.92); opacity:0}
+  20%{opacity:1}
+  100%{transform:translateY(-58px) scale(1.05); opacity:0}
+}
+#notifications{
+  position:absolute; left:22px; bottom:20px; width:430px;
+  display:flex; flex-direction:column; gap:10px; z-index:10
+}
+.notice{
+  padding:12px 14px; border-radius:12px;
+  background:linear-gradient(180deg, rgba(13,14,17,.96), rgba(8,9,11,.94));
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:var(--shadow);
+  animation:slideIn .25s ease, fadeOut .35s ease 4.4s forwards;
+}
+.notice.good{border-color:rgba(130,242,170,.22)}
+.notice.bad{border-color:rgba(255,123,123,.22)}
+.notice.neutral{border-color:rgba(103,216,255,.22)}
+.notice .n-title{font-size:16px; font-weight:700; margin-bottom:4px}
+.notice .n-body{font-size:14px; color:var(--muted)}
+@keyframes slideIn{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fadeOut{to{opacity:0; transform:translateY(-4px)}}
+.flash{position:absolute; inset:0; pointer-events:none; z-index:11; opacity:0}
+.flash.red{background:rgba(255,0,0,.14)}
+.flash.blue{background:rgba(80,200,255,.12)}
+.flash.show{animation:flash .38s ease}
+@keyframes flash{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+
+#deathOverlay{
+  position:absolute; inset:0; z-index:20;
+  display:none; place-items:center;
+  background:rgba(0,0,0,.74);
+}
+#deathOverlay.show{display:grid}
+.overlay-card{
+  width:min(520px,92%);
+  padding:24px;
+  border-radius:18px;
+  background:linear-gradient(180deg, rgba(14,15,18,.98), rgba(8,9,11,.96));
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:var(--shadow);
+}
+.overlay-card h2{margin:0 0 10px; font-size:34px; color:var(--red2)}
+.overlay-card p{color:var(--muted); line-height:1.5}
+.overlay-actions{display:flex; gap:12px; flex-wrap:wrap; margin-top:16px}
+.overlay-actions button{padding:12px 14px; border-radius:10px}
+
+.right-panel{display:flex; flex-direction:column}
+.tabs{
+  position:relative; z-index:2;
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:8px; padding:14px;
+}
+.tab-btn{border-radius:10px; padding:11px 10px; font-size:15px}
+.tab-btn.active{
+  border-color:rgba(103,216,255,.22);
+  box-shadow:0 0 0 1px rgba(103,216,255,.16) inset;
+}
+.tab-content{display:none; flex:1; overflow:auto; padding:0 14px 14px; position:relative; z-index:2}
+.tab-content.active{display:block}
+.shop-title{margin-top:6px}
+.small-note{color:var(--muted); font-size:14px; line-height:1.45}
+.shop-section{display:grid; gap:10px; margin-top:10px}
+.category-block{
+  margin-top:14px;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+  overflow:hidden;
+}
+.category-head{
+  padding:10px 12px;
+  font-size:16px;
+  color:#e6dfd3;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+}
+.category-items{display:grid; gap:10px; padding:10px}
+.shop-item{
+  position:relative;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.03);
+  border-radius:12px;
+  padding:12px;
+}
+.shop-item.bought{
+  border-color:rgba(130,242,170,.42);
+  outline:2px solid rgba(130,242,170,.18);
+  background:
+    linear-gradient(180deg, rgba(29,92,48,.28), rgba(16,38,24,.20)),
+    rgba(255,255,255,.03);
+  box-shadow:0 0 0 1px rgba(130,242,170,.10) inset, 0 0 18px rgba(80,180,110,.10);
+}
+.shop-item.bought::before{
+  content:"ACHETÉE";
+  position:absolute; top:10px; right:12px;
+  font-size:12px; font-weight:700; letter-spacing:.8px;
+  color:#e7fff0;
+  background:rgba(64,160,96,.26);
+  border:1px solid rgba(130,242,170,.42);
+  padding:4px 8px; border-radius:999px;
+}
+.shop-item.bought .shop-name{color:var(--green); text-shadow:0 0 10px rgba(130,242,170,.12)}
+.shop-item.bought .shop-meta,.shop-item.bought .shop-owned{color:#d8ffe6}
+.shop-top{display:flex; justify-content:space-between; gap:12px; align-items:flex-start}
+.shop-name{font-size:19px; margin-bottom:4px; padding-right:100px}
+.shop-desc{color:var(--muted); font-size:14px; line-height:1.35}
+.shop-meta{color:var(--gold); font-size:14px; margin-top:8px}
+.shop-owned{color:var(--blue); font-size:14px; margin-top:6px}
+.buy-btn{border-radius:10px; padding:11px 12px; min-width:112px; align-self:center}
+.shop-item.bought .buy-btn{
+  color:#d8ffe6;
+  border-color:rgba(130,242,170,.36);
+  background:linear-gradient(180deg, rgba(80,180,110,.28), rgba(40,90,58,.16));
+}
+.footer-actions{padding:0 14px 14px; position:relative; z-index:2}
+#resetSaveBtn{width:100%; padding:13px 14px; border-radius:10px; border-color:rgba(255,123,123,.2)}
+.footer-note{font-size:12px; color:var(--muted); text-align:center; padding:6px 10px 14px}
+
+@media (max-width:1360px){
+  #game{grid-template-columns:330px 1fr 420px}
+  .alex-wrap{right:42px;height:min(80vh,840px)}
+}
+@media (max-width:1120px){
+  html,body{overflow:auto}
+  #game{height:auto; min-height:100vh; grid-template-columns:1fr}
+  .center-panel{min-height:580px}
+  .alex-wrap{right:20px; height:70vh; opacity:.2}
+}
+</style>
+</head>
+<body>
+<div id="game">
+  <section class="panel left-panel">
+    <div class="wood-header">Respire ou Crève</div>
+    <div class="stats-wrap">
+      <div class="title-block">
+        <h1>Maintiens Alex en vie</h1>
+        <div class="subtitle">Asthmatique, instable, épuisé. Chaque clic compte, et le souffle passif peut maintenir Alex en vie.</div>
+      </div>
+
+      <div class="big-stat" id="hpPanel">
+        <div class="hp-line">
+          <div>
+            <div class="hp-number" id="hpText">90 PV</div>
+            <div class="hp-sub" id="drainText">perte / sec : -2.0</div>
+          </div>
+          <div class="hp-sub">capacité : <span id="maxHpText">100</span></div>
+        </div>
+        <div class="hp-bar"><div id="hpFill"></div></div>
+      </div>
+
+      <div class="mini-grid">
+        <div class="mini-card">
+          <div class="label">Souffle</div>
+          <div class="value blue" id="souffleText">0</div>
+        </div>
+        <div class="mini-card">
+          <div class="label">Par clic</div>
+          <div class="value green" id="clickGainText">+2.5 PV</div>
+        </div>
+        <div class="mini-card">
+          <div class="label">Souffle passif</div>
+          <div class="value blue" id="passiveText">0.0/s</div>
+        </div>
+        <div class="mini-card">
+          <div class="label">État</div>
+          <div class="value gold" id="stateText">Stable</div>
+        </div>
+        <div class="mini-card">
+          <div class="label">Niveau d’asthme</div>
+          <div class="value gold" id="asthmaText">0.0</div>
+        </div>
+        <div class="mini-card">
+          <div class="label">Combo respiration</div>
+          <div class="value blue" id="comboText">x1.00</div>
+        </div>
+      </div>
+
+      <button id="lungButton" aria-label="Cliquer pour respirer">
+        <div class="lung-ring"></div>
+        <div class="lung-inner">
+          <svg class="lung-svg" viewBox="0 0 240 240" aria-hidden="true">
+            <defs>
+              <linearGradient id="lungGrad" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stop-color="#c01d25"/>
+                <stop offset="45%" stop-color="#912027"/>
+                <stop offset="100%" stop-color="#5d0f16"/>
+              </linearGradient>
+              <linearGradient id="trach" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#f5b0b0"/>
+                <stop offset="100%" stop-color="#9f4b4b"/>
+              </linearGradient>
+            </defs>
+            <rect x="113" y="18" width="14" height="64" rx="6" fill="url(#trach)"/>
+            <path d="M120 80 C95 85, 70 92, 54 121 C40 145, 38 175, 50 194 C62 213, 84 215, 97 198 C110 181, 111 157, 110 131 C109 112, 107 96, 120 80Z" fill="url(#lungGrad)" stroke="#f17c85" stroke-opacity=".35" stroke-width="2"/>
+            <path d="M120 80 C145 85, 170 92, 186 121 C200 145, 202 175, 190 194 C178 213, 156 215, 143 198 C130 181, 129 157, 130 131 C131 112, 133 96, 120 80Z" fill="url(#lungGrad)" stroke="#f17c85" stroke-opacity=".35" stroke-width="2"/>
+            <path d="M78 110 C88 135, 83 162, 76 184" fill="none" stroke="#f5a6a8" stroke-width="2" opacity=".44"/>
+            <path d="M95 105 C101 126, 98 154, 95 178" fill="none" stroke="#f5a6a8" stroke-width="2" opacity=".44"/>
+            <path d="M162 110 C152 135, 157 162, 164 184" fill="none" stroke="#f5a6a8" stroke-width="2" opacity=".44"/>
+            <path d="M145 105 C139 126, 142 154, 145 178" fill="none" stroke="#f5a6a8" stroke-width="2" opacity=".44"/>
+            <path d="M113 82 C107 93, 105 105, 106 124" fill="none" stroke="#f6b3b5" stroke-width="2"/>
+            <path d="M127 82 C133 93, 135 105, 134 124" fill="none" stroke="#f6b3b5" stroke-width="2"/>
+          </svg>
+        </div>
+      </button>
+      <div class="click-caption">Clique pour faire respirer Alex et gagner des PV + du souffle</div>
+    </div>
+
+    <div class="controls">
+      <h3>Actions & bonus</h3>
+      <div class="control-buttons">
+        <button class="control-btn good" id="ventolineBtn">Ventoline <small id="ventolineInfo">soigne et réduit la perte</small></button>
+        <button class="control-btn warn" id="defibBtn">Défibrillateur <small id="defibInfo">charges : 0</small></button>
+        <button class="control-btn" id="walkBtn">Marche à pied <small>+ souffle, mais plus de perte</small></button>
+        <button class="control-btn bad" id="runBtn">Course à pied <small>gros gain, gros risque</small></button>
+        <button class="control-btn bad" id="smokeBtn">Cigarette <small>boost court, malus long</small></button>
+        <button class="control-btn" id="manualResetBtn">Recommencer la run <small>repartir depuis zéro</small></button>
+      </div>
+    </div>
+
+    <div class="effects-box">
+      <h3>Effets actifs</h3>
+      <div id="effectsList"></div>
+    </div>
+
+    <div class="achievements">
+      <h3>Trophées</h3>
+      <div id="achievementList"></div>
+    </div>
+  </section>
+
+  <section class="panel center-panel">
+    <div class="stage">
+      <div class="stage-topbar">État d’Alex : <span id="stageMessage">Le rythme est fragile, mais tu tiens.</span></div>
+      <div class="decor-shelf"></div>
+      <div class="decor-floor"></div>
+      <div class="scrap s1"></div><div class="scrap s2"></div><div class="scrap s3"></div><div class="scrap s4"></div><div class="scrap s5"></div>
+      <div class="cookie c1"></div><div class="cookie c2"></div><div class="cookie c3"></div><div class="cookie c4"></div>
+      <div class="alex-wrap"><img src="alex.png" alt="Alex"></div>
+      <div id="spawnLayer"></div>
+      <div id="notifications"></div>
+      <div class="flash red" id="flashRed"></div>
+      <div class="flash blue" id="flashBlue"></div>
+
+      <div id="deathOverlay">
+        <div class="overlay-card">
+          <h2>Alex s’effondre.</h2>
+          <p>La perte de PV a dépassé ta capacité de survie. Renforce ton clic, développe le souffle passif et ralentis la montée de l’asthme.</p>
+          <div class="overlay-actions">
+            <button class="action-btn" id="retryBtn">Relancer la run</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel right-panel">
+    <div class="wood-header">Boutique</div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="shopTab">Sources passives</button>
+      <button class="tab-btn" data-tab="upgradeTab">Améliorations</button>
+    </div>
+
+    <div class="tab-content active" id="shopTab">
+      <div class="shop-title">Sources de souffle passif</div>
+      <div class="small-note">Ces achats génèrent du souffle passif, et ce souffle passif rend aussi des PV à Alex automatiquement.</div>
+      <div class="shop-section" id="shopList"></div>
+    </div>
+
+    <div class="tab-content" id="upgradeTab">
+      <div class="shop-title">Améliorations</div>
+      <div class="small-note">Cartes vertes, badge et bouton désactivé = amélioration déjà achetée. Les effets s’appliquent immédiatement à la run.</div>
+      <div class="shop-section" id="upgradeList"></div>
+    </div>
+
+    <div class="footer-actions">
+      <button class="action-btn" id="resetSaveBtn">Reset complet de la sauvegarde</button>
+    </div>
+    <div class="footer-note">Sauvegarde locale automatique activée</div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const SAVE_KEY = "respire_ou_creve_save_v9_upgrades_rich";
+
+  const generatorDefs = [
+    { id:"respire", name:"Respiration contrôlée", baseCost:15, souffle:0.8, hp:0.10, desc:"Routine respiratoire lente mais régulière."},
+    { id:"auto_vento", name:"Ventoline automatique", baseCost:70, souffle:2.0, hp:0.26, desc:"Micro-doseurs qui aident Alex à tenir."},
+    { id:"machine", name:"Machine respiratoire", baseCost:220, souffle:5.4, hp:0.55, desc:"Assistance mécanique rudimentaire."},
+    { id:"medical", name:"Assistance médicale", baseCost:760, souffle:12.5, hp:1.05, desc:"Aide clinique improvisée dans l’ombre."},
+    { id:"passif", name:"Système respiratoire passif", baseCost:2500, souffle:28, hp:2.5, desc:"Stabilise la run sans cliquer."},
+    { id:"lab", name:"Laboratoire pulmonaire", baseCost:8200, souffle:76, hp:6.3, desc:"Tests obscurs, efficacité certaine."},
+    { id:"implant", name:"Implant respiratoire", baseCost:25000, souffle:195, hp:15, desc:"Transcende la fragilité d’Alex."}
+  ];
+
+  const upgradeCategories = [
+    { id:"click", name:"Améliorations de clic" },
+    { id:"passive", name:"Améliorations de souffle passif" },
+    { id:"survival", name:"Améliorations de survie" },
+    { id:"asthma", name:"Améliorations contre l’asthme" },
+    { id:"medical", name:"Ventoline & défibrillateur" },
+    { id:"risk", name:"Améliorations de risque" },
+    { id:"progression", name:"Améliorations de progression" }
+  ];
+
+  const upgradeDefs = [
+    { id:"deep_breath", category:"click", name:"Inspiration profonde", cost:40, desc:"+1.7 PV par clic.", apply:s=>{ s.clickHpBase += 1.7; } },
+    { id:"strong_breath", category:"click", name:"Souffle plus puissant", cost:70, desc:"+1.5 souffle par clic.", apply:s=>{ s.clickSouffleBase += 1.5; } },
+    { id:"reflex", category:"click", name:"Réflexe pulmonaire", cost:140, desc:"+12% de chance de clic critique.", apply:s=>{ s.critChance += 0.12; s.critMult += 1.0; } },
+    { id:"manual_adrenaline", category:"click", name:"Adrénaline manuelle", cost:280, desc:"+75% puissance de clic quand Alex est sous 25% PV.", apply:s=>{ s.lowHpClickBonus += 0.75; } },
+
+    { id:"auto_breath", category:"passive", name:"Respiration autonome", cost:55, desc:"+0.45 souffle passif/s.", apply:s=>{ s.passiveSouffleFlat += 0.45; } },
+    { id:"routine", category:"passive", name:"Routine respiratoire", cost:125, desc:"+25% souffle passif global.", apply:s=>{ s.passiveMult += 0.25; } },
+    { id:"assisted_lung", category:"passive", name:"Poumon assisté", cost:240, desc:"Le souffle passif rend plus de PV.", apply:s=>{ s.passiveHpFromSouffleMult += 0.35; } },
+    { id:"stable_cannula", category:"passive", name:"Canule stable", cost:520, desc:"Les crises réduisent moins l’efficacité de la run.", apply:s=>{ s.crisisStability += 0.20; } },
+
+    { id:"capacity", category:"survival", name:"Capacité pulmonaire", cost:95, desc:"+35 PV max.", apply:s=>{ s.maxHpBase += 35; s.hp += 20; } },
+    { id:"thoracic_resistance", category:"survival", name:"Résistance thoracique", cost:190, desc:"-0.40 perte de PV/sec.", apply:s=>{ s.flatDrainReduction += 0.40; } },
+    { id:"effort_tolerance", category:"survival", name:"Tolérance à l’effort", cost:420, desc:"Réduit les malus de marche et course.", apply:s=>{ s.walkPenaltyMult *= 0.75; s.runPenaltyMult *= 0.82; } },
+    { id:"fast_recovery", category:"survival", name:"Récupération rapide", cost:680, desc:"Ventoline plus efficace.", apply:s=>{ s.ventolinePower += 0.35; } },
+
+    { id:"crisis_control", category:"asthma", name:"Contrôle de crise", cost:260, desc:"L’asthme monte plus lentement.", apply:s=>{ s.asthmaGrowthRate *= 0.82; } },
+    { id:"background_treatment", category:"asthma", name:"Traitement de fond", cost:520, desc:"L’asthme pèse moins sur la perte de PV.", apply:s=>{ s.asthmaImpactMult *= 0.82; } },
+    { id:"nebulizer", category:"asthma", name:"Nébuliseur médical", cost:860, desc:"Les crises durent moins longtemps.", apply:s=>{ s.crisisDurationMult *= 0.78; } },
+    { id:"air_filter", category:"asthma", name:"Filtre à air", cost:1300, desc:"Réduit les malus de pollution et d’événements négatifs.", apply:s=>{ s.eventMalusMult *= 0.86; s.pollutionProtection += 0.25; } },
+
+    { id:"concentrated_ventoline", category:"medical", name:"Ventoline concentrée", cost:340, desc:"La Ventoline soigne davantage.", apply:s=>{ s.ventolinePower += 0.55; } },
+    { id:"medical_reserve", category:"medical", name:"Réserve médicale", cost:760, desc:"Réduit le cooldown de la Ventoline.", apply:s=>{ s.ventolineCooldownMult *= 0.78; } },
+    { id:"extra_charge", category:"medical", name:"Charge supplémentaire", cost:1150, desc:"+1 charge de défibrillateur.", apply:s=>{ s.defibCharges += 1; s.startingDefib += 1; } },
+    { id:"post_shock_recovery", category:"medical", name:"Récupération post-choc", cost:1800, desc:"Réduit le malus après défibrillateur.", apply:s=>{ s.defibRecoveryMult += 0.35; } },
+
+    { id:"controlled_walk", category:"risk", name:"Marche contrôlée", cost:210, desc:"La marche donne plus de souffle et fait moins mal.", apply:s=>{ s.walkRewardMult += 0.35; s.walkPenaltyMult *= 0.72; } },
+    { id:"master_run", category:"risk", name:"Course maîtrisée", cost:620, desc:"La course rapporte plus et devient moins punitive.", apply:s=>{ s.runRewardMult += 0.40; s.runPenaltyMult *= 0.78; } },
+    { id:"weaning", category:"risk", name:"Sevrage progressif", cost:860, desc:"Réduit le malus de cigarette.", apply:s=>{ s.smokePenaltyMult *= 0.70; } },
+
+    { id:"prepared_start", category:"progression", name:"Départ préparé", cost:260, desc:"+60 souffle immédiatement et au début des runs suivantes.", apply:s=>{ s.startSouffle += 60; s.souffle += 60; } },
+    { id:"buy_optimization", category:"progression", name:"Optimisation des achats", cost:900, desc:"Les générateurs coûtent 10% moins cher.", apply:s=>{ s.genCostMult *= 0.90; } },
+    { id:"general_stability", category:"progression", name:"Stabilité générale", cost:1500, desc:"+15% clic, +15% passif, -0.12 perte/sec.", apply:s=>{ s.clickMult += 0.15; s.passiveMult += 0.15; s.flatDrainReduction += 0.12; } }
+  ];
+
+  const achievements = [
+    { id:"first_click", name:"Premier souffle", check:s=>s.totalClicks >= 1 },
+    { id:"fifty_clicks", name:"50 respirations", check:s=>s.totalClicks >= 50 },
+    { id:"souffle_500", name:"500 souffle", check:s=>s.lifetimeSouffle >= 500 },
+    { id:"first_machine", name:"Machine en marche", check:s=>s.generators.machine >= 1 },
+    { id:"mods_5", name:"Corps modifié", check:s=>s.purchasedUpgrades.length >= 5 },
+    { id:"survivor", name:"Run tenace", check:s=>s.timeAlive >= 180 }
+  ];
+
+  const qs = sel => document.querySelector(sel);
+  const qsa = sel => [...document.querySelectorAll(sel)];
+
+  const els = {
+    hpText: qs("#hpText"),
+    maxHpText: qs("#maxHpText"),
+    hpFill: qs("#hpFill"),
+    drainText: qs("#drainText"),
+    souffleText: qs("#souffleText"),
+    clickGainText: qs("#clickGainText"),
+    passiveText: qs("#passiveText"),
+    stateText: qs("#stateText"),
+    asthmaText: qs("#asthmaText"),
+    comboText: qs("#comboText"),
+    stageMessage: qs("#stageMessage"),
+    effectsList: qs("#effectsList"),
+    achievementList: qs("#achievementList"),
+    shopList: qs("#shopList"),
+    upgradeList: qs("#upgradeList"),
+    notifications: qs("#notifications"),
+    spawnLayer: qs("#spawnLayer"),
+    deathOverlay: qs("#deathOverlay"),
+    ventolineInfo: qs("#ventolineInfo"),
+    defibInfo: qs("#defibInfo"),
+    flashRed: qs("#flashRed"),
+    flashBlue: qs("#flashBlue"),
+    hpPanel: qs("#hpPanel")
+  };
+
+  function makeRunState() {
+    return {
+      hp: 90,
+      maxHpBase: 100,
+      souffle: 0,
+      lifetimeSouffle: 0,
+      totalClicks: 0,
+      timeAlive: 0,
+      combo: 0,
+      bestHp: 90,
+
+      clickHpBase: 2.6,
+      clickSouffleBase: 1.1,
+      clickMult: 1,
+      critChance: 0,
+      critMult: 1.5,
+
+      basePassiveSouffle: 0.18,
+      passiveSouffleFlat: 0,
+      passiveMult: 1,
+      passiveHpFromSouffleMult: 1,
+      flatHpRegen: 0,
+
+      baseDrain: 2,
+      flatDrainReduction: 0,
+      asthmaIntensity: 0,
+      asthmaGrowthRate: 0.055,
+      asthmaImpactMult: 1,
+
+      eventMalusMult: 1,
+      crisisDurationMult: 1,
+      crisisStability: 0,
+      pollutionProtection: 0,
+
+      ventolinePower: 1,
+      ventolineCooldownMult: 1,
+      ventolineTolerance: 0,
+      ventolineCooldown: 0,
+
+      defibCharges: 0,
+      startingDefib: 0,
+      defibHealMult: 1,
+      defibRecoveryMult: 0,
+
+      walkRewardMult: 1,
+      walkPenaltyMult: 1,
+      runRewardMult: 1,
+      runPenaltyMult: 1,
+      smokePenaltyMult: 1,
+
+      genCostMult: 1,
+      startSouffle: 0,
+      lowHpClickBonus: 0,
+
+      walkCooldown: 0,
+      runCooldown: 0,
+      smokeCooldown: 0,
+
+      generators: Object.fromEntries(generatorDefs.map(g => [g.id, 0])),
+      purchasedUpgrades: [],
+      activeEffects: []
+    };
+  }
+
+  function makeState() {
+    return {
+      unlocked: [],
+      dead: false,
+      run: makeRunState()
+    };
+  }
+
+  let state = loadState();
+  let last = performance.now();
+  let nextEventAt = performance.now() + 16000;
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return makeState();
+      const parsed = JSON.parse(raw);
+      const s = makeState();
+      s.unlocked = Array.isArray(parsed.unlocked) ? parsed.unlocked : [];
+      s.dead = false;
+      s.run = Object.assign(makeRunState(), parsed.run || {});
+      s.run.generators = Object.assign(makeRunState().generators, parsed.run?.generators || {});
+      s.run.purchasedUpgrades = Array.isArray(parsed.run?.purchasedUpgrades) ? parsed.run.purchasedUpgrades : [];
+      s.run.activeEffects = [];
+      return s;
+    } catch (e) {
+      console.warn("Save invalid", e);
+      return makeState();
+    }
+  }
+
+  function saveState() {
+    const serializable = {
+      unlocked: state.unlocked,
+      run: Object.assign({}, state.run, { activeEffects: [] })
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(serializable));
+  }
+
+  function hardReset() {
+    localStorage.removeItem(SAVE_KEY);
+    state = makeState();
+    state.run.souffle = state.run.startSouffle;
+    renderAll();
+    pushNotice("Sauvegarde réinitialisée", "Tout repart de zéro.", "bad");
+  }
+
+  function resetRun() {
+    const unlocked = state.unlocked.slice();
+    const startSouffle = state.run.startSouffle;
+    const startingDefib = state.run.startingDefib;
+    state = makeState();
+    state.unlocked = unlocked;
+    state.run.souffle = startSouffle;
+    state.run.defibCharges = startingDefib;
+    state.dead = false;
+    els.deathOverlay.classList.remove("show");
+    renderAll();
+    saveState();
+  }
+
+  function costForGenerator(def) {
+    const owned = state.run.generators[def.id] || 0;
+    return Math.floor(def.baseCost * state.run.genCostMult * Math.pow(1.16, owned));
+  }
+
+  function getComboMultiplier() {
+    return 1 + Math.min(state.run.combo, 20) * 0.04;
+  }
+
+  function getMaxHp() {
+    return state.run.maxHpBase;
+  }
+
+  function getDerived() {
+    const effect = {
+      drainAdd: 0,
+      drainMul: 1,
+      clickHpMult: 1,
+      clickSouffleMult: 1,
+      passiveHpMult: 1,
+      passiveSouffleMult: 1,
+      flatHpRegen: 0
+    };
+
+    for (const ef of state.run.activeEffects) {
+      effect.drainAdd += ef.drainAdd || 0;
+      effect.drainMul *= ef.drainMul || 1;
+      effect.clickHpMult *= ef.clickHpMult || 1;
+      effect.clickSouffleMult *= ef.clickSouffleMult || 1;
+      effect.passiveHpMult *= ef.passiveHpMult || 1;
+      effect.passiveSouffleMult *= ef.passiveSouffleMult || 1;
+      effect.flatHpRegen += ef.flatHpRegen || 0;
+    }
+
+    let passiveSouffleBase = state.run.basePassiveSouffle + state.run.passiveSouffleFlat + (state.run.combo * 0.012);
+    let passiveHpBase = 0;
+    for (const g of generatorDefs) {
+      const owned = state.run.generators[g.id] || 0;
+      passiveSouffleBase += owned * g.souffle;
+      passiveHpBase += owned * g.hp;
+    }
+
+    let clickHp = state.run.clickHpBase * state.run.clickMult * getComboMultiplier() * effect.clickHpMult;
+    if (state.run.lowHpClickBonus > 0 && state.run.hp <= getMaxHp() * 0.25) {
+      clickHp *= (1 + state.run.lowHpClickBonus);
+    }
+
+    let clickSouffle = state.run.clickSouffleBase * state.run.clickMult * getComboMultiplier() * effect.clickSouffleMult;
+    const passiveSouffle = passiveSouffleBase * state.run.passiveMult * effect.passiveSouffleMult;
+    const passiveHpFromSouffle = passiveSouffle * 0.08 * state.run.passiveHpFromSouffleMult;
+    const passiveHp = passiveHpBase * state.run.passiveMult * effect.passiveHpMult + state.run.flatHpRegen + effect.flatHpRegen + passiveHpFromSouffle;
+    const asthmaDrain = state.run.asthmaIntensity * state.run.asthmaImpactMult;
+    const drain = Math.max(0, ((state.run.baseDrain + asthmaDrain + effect.drainAdd) * effect.drainMul) - state.run.flatDrainReduction);
+
+    return { clickHp, clickSouffle, passiveSouffle, passiveHp, drain, asthmaDrain };
+  }
+
+  function fmt(n) {
+    if (Math.abs(n) >= 1000000) return (n / 1000000).toFixed(2).replace(/\.00$/, "") + "M";
+    if (Math.abs(n) >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+    return Number(n).toFixed(n < 10 ? 1 : 0).replace(/\.0$/, "");
+  }
+
+  function addSouffle(amount) {
+    if (!amount) return;
+    state.run.souffle += amount;
+    if (amount > 0) state.run.lifetimeSouffle += amount;
+  }
+
+  function heal(amount) {
+    state.run.hp = Math.min(getMaxHp(), state.run.hp + amount);
+    state.run.bestHp = Math.max(state.run.bestHp, state.run.hp);
+  }
+
+  function hurt(amount) {
+    state.run.hp -= amount;
+    if (state.run.hp <= 0) {
+      tryDefibOrDie();
+    }
+  }
+
+  function softenNegativeMultiplier(value) {
+    if (value >= 1) return value;
+    return value + (1 - value) * state.run.crisisStability;
+  }
+
+  function applyEffect(effect) {
+    const now = performance.now();
+    const adjusted = { ...effect };
+    if (adjusted.negative) {
+      adjusted.duration = adjusted.duration * state.run.crisisDurationMult;
+      if (adjusted.drainAdd) adjusted.drainAdd *= state.run.eventMalusMult;
+      if (adjusted.clickHpMult) adjusted.clickHpMult = softenNegativeMultiplier(adjusted.clickHpMult);
+      if (adjusted.clickSouffleMult) adjusted.clickSouffleMult = softenNegativeMultiplier(adjusted.clickSouffleMult);
+      if (adjusted.passiveSouffleMult) adjusted.passiveSouffleMult = softenNegativeMultiplier(adjusted.passiveSouffleMult);
+      if (adjusted.passiveHpMult) adjusted.passiveHpMult = softenNegativeMultiplier(adjusted.passiveHpMult);
+    }
+    adjusted.endsAt = now + adjusted.duration * 1000;
+
+    const idx = state.run.activeEffects.findIndex(e => e.id === adjusted.id);
+    if (idx >= 0) state.run.activeEffects[idx] = adjusted;
+    else state.run.activeEffects.push(adjusted);
+  }
+
+  function removeExpiredEffects(now) {
+    state.run.activeEffects = state.run.activeEffects.filter(e => e.endsAt > now);
+  }
+
+  function tryDefibOrDie() {
+    if (state.run.defibCharges > 0) {
+      state.run.defibCharges -= 1;
+      const restored = getMaxHp() * (0.42 * state.run.defibHealMult);
+      state.run.hp = Math.min(getMaxHp(), restored);
+      const postShockPenalty = 0.85 * (1 - state.run.defibRecoveryMult);
+      applyEffect({
+        id:"defib_shock",
+        name:"Récupération post-choc",
+        duration:9,
+        drainAdd:postShockPenalty,
+        clickHpMult:0.88,
+        negative:true
+      });
+      flash("blue");
+      pushNotice("Défibrillateur déclenché", "Alex revient in extremis.", "good");
+      spawnFloat(innerWidth * 0.56, innerHeight * 0.58, "+" + fmt(restored) + " PV", "blue");
+      return;
+    }
+    state.run.hp = 0;
+    state.dead = true;
+    els.deathOverlay.classList.add("show");
+    flash("red");
+    pushNotice("Run terminée", "Alex s’est effondré.", "bad");
+  }
+
+  function spawnFloat(x, y, text, cls="good") {
+    const el = document.createElement("div");
+    el.className = "float-text " + cls;
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    el.textContent = text;
+    els.spawnLayer.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+  }
+
+  function pushNotice(title, body, tone="neutral") {
+    const el = document.createElement("div");
+    el.className = "notice " + tone;
+    el.innerHTML = `<div class="n-title">${title}</div><div class="n-body">${body}</div>`;
+    els.notifications.prepend(el);
+    while (els.notifications.children.length > 5) els.notifications.lastChild.remove();
+    setTimeout(() => el.remove(), 4800);
+  }
+
+  function flash(color) {
+    const el = color === "red" ? els.flashRed : els.flashBlue;
+    el.classList.remove("show");
+    void el.offsetWidth;
+    el.classList.add("show");
+  }
+
+  function maybeUnlockAchievements() {
+    for (const a of achievements) {
+      if (!state.unlocked.includes(a.id) && a.check(state.run)) {
+        state.unlocked.push(a.id);
+        pushNotice("Trophée débloqué", a.name, "good");
+      }
+    }
+    renderAchievements();
+  }
+
+  function renderAchievements() {
+    els.achievementList.innerHTML = "";
+    achievements.forEach(a => {
+      const isUnlocked = state.unlocked.includes(a.id);
+      const div = document.createElement("div");
+      div.className = "achievement" + (isUnlocked ? "" : " locked");
+      div.textContent = (isUnlocked ? "✓ " : "✦ ") + a.name;
+      els.achievementList.appendChild(div);
+    });
+  }
+
+  function clickLung() {
+    if (state.dead) return;
+    const d = getDerived();
+    let clickHp = d.clickHp;
+    let clickSouffle = d.clickSouffle;
+    let tone = "good";
+
+    if (Math.random() < state.run.critChance) {
+      clickHp *= (1 + state.run.critMult);
+      clickSouffle *= (1 + state.run.critMult * 0.55);
+      tone = "gold";
+      pushNotice("Clic critique", "Respiration explosive.", "good");
+    }
+
+    heal(clickHp);
+    addSouffle(clickSouffle);
+    state.run.totalClicks += 1;
+    state.run.combo = Math.min(20, state.run.combo + 1);
+
+    const rect = qs("#lungButton").getBoundingClientRect();
+    spawnFloat(rect.left + rect.width * 0.50, rect.top + rect.height * 0.42, "+" + fmt(clickHp) + " PV", tone === "gold" ? "gold" : "good");
+    spawnFloat(rect.left + rect.width * 0.58, rect.top + rect.height * 0.60, "+" + fmt(clickSouffle) + " souffle", tone === "gold" ? "gold" : "blue");
+    qs("#lungButton").classList.add("clicked");
+    setTimeout(() => qs("#lungButton").classList.remove("clicked"), 90);
+    flash("blue");
+    maybeUnlockAchievements();
+    renderAll();
+  }
+
+  function useVentoline() {
+    if (state.dead || state.run.ventolineCooldown > 0) return;
+    const efficiency = Math.max(0.45, 1 - state.run.ventolineTolerance * 0.7);
+    const healAmount = 18 * state.run.ventolinePower * efficiency;
+    heal(healAmount);
+    applyEffect({
+      id:"ventoline",
+      name:"Ventoline",
+      duration:8,
+      drainAdd:-1.3 * state.run.ventolinePower * efficiency,
+      clickHpMult:1.08
+    });
+    state.run.ventolineCooldown = 16 * state.run.ventolineCooldownMult;
+    state.run.ventolineTolerance = Math.min(0.6, state.run.ventolineTolerance + 0.06);
+    pushNotice("Ventoline", "Alex reprend de l’air.", "good");
+    spawnFloat(innerWidth * 0.56, innerHeight * 0.56, "+" + fmt(healAmount) + " PV", "good");
+    renderAll();
+  }
+
+  function buyDefibCharge() {
+    const price = 260 + state.run.defibCharges * 180;
+    if (state.dead || state.run.souffle < price) return;
+    state.run.souffle -= price;
+    state.run.defibCharges += 1;
+    pushNotice("Défibrillateur acheté", "Charge supplémentaire prête.", "neutral");
+    renderAll();
+  }
+
+  function doWalk() {
+    if (state.dead || state.run.walkCooldown > 0) return;
+    const reward = 26 * state.run.walkRewardMult;
+    state.run.walkCooldown = 10;
+    addSouffle(reward);
+    applyEffect({
+      id:"walk",
+      name:"Marche",
+      duration:10,
+      drainAdd:0.65 * state.run.walkPenaltyMult,
+      clickHpMult:0.96,
+      negative:true
+    });
+    pushNotice("Marche à pied", "+" + fmt(reward) + " souffle, mais Alex s’essouffle.", "neutral");
+    spawnFloat(innerWidth * 0.58, innerHeight * 0.58, "+" + fmt(reward) + " souffle", "blue");
+    renderAll();
+  }
+
+  function doRun() {
+    if (state.dead || state.run.runCooldown > 0) return;
+    const reward = 90 * state.run.runRewardMult;
+    state.run.runCooldown = 16;
+    addSouffle(reward);
+    applyEffect({
+      id:"run",
+      name:"Course",
+      duration:8,
+      drainAdd:2.3 * state.run.runPenaltyMult,
+      clickHpMult:0.9,
+      negative:true
+    });
+    if (Math.random() < 0.35) {
+      applyEffect({
+        id:"panic",
+        name:"Panique",
+        duration:6,
+        drainAdd:1.2,
+        clickHpMult:0.75,
+        negative:true
+      });
+      hurt(8);
+      pushNotice("Course à pied", "+" + fmt(reward) + " souffle, mais crise violente !", "bad");
+      flash("red");
+    } else {
+      pushNotice("Course à pied", "+" + fmt(reward) + " souffle. Alex a tenu bon.", "neutral");
+      flash("blue");
+    }
+    spawnFloat(innerWidth * 0.60, innerHeight * 0.58, "+" + fmt(reward) + " souffle", "blue");
+    renderAll();
+  }
+
+  function doSmoke() {
+    if (state.dead || state.run.smokeCooldown > 0) return;
+    state.run.smokeCooldown = 14;
+    addSouffle(48);
+    heal(3);
+    applyEffect({
+      id:"smoke",
+      name:"Cigarette",
+      duration:18,
+      drainAdd:1.0 * state.run.smokePenaltyMult,
+      clickSouffleMult:1.18,
+      negative:true
+    });
+    pushNotice("Cigarette", "Petit boost immédiat. Les poumons paieront plus tard.", "bad");
+    flash("red");
+    renderAll();
+  }
+
+  function triggerRandomEvent() {
+    if (state.dead) return;
+    const pollutionDrain = 1.55 * (1 - state.run.pollutionProtection);
+
+    const events = [
+      () => {
+        applyEffect({ id:"asthma_crisis", name:"Crise d’asthme", duration:8, drainAdd:2.2, clickHpMult:0.72, passiveSouffleMult:0.84, negative:true });
+        hurt(10);
+        pushNotice("Crise d’asthme", "La perte de PV s’emballe.", "bad");
+        flash("red");
+      },
+      () => {
+        applyEffect({ id:"adrenaline", name:"Adrénaline", duration:10, clickHpMult:1.6, clickSouffleMult:1.4, passiveSouffleMult:1.2 });
+        pushNotice("Montée d’adrénaline", "Les clics rapportent beaucoup plus.", "good");
+        flash("blue");
+      },
+      () => {
+        applyEffect({ id:"clean_air", name:"Air pur", duration:12, drainAdd:-1.25 });
+        pushNotice("Air pur", "Alex respire un peu mieux.", "good");
+      },
+      () => {
+        applyEffect({ id:"pollution", name:"Pollution", duration:12, drainAdd:pollutionDrain, negative:true });
+        pushNotice("Pollution", "L’air devient irrespirable.", "bad");
+        flash("red");
+      },
+      () => {
+        applyEffect({ id:"panic2", name:"Panique", duration:6, clickHpMult:0.6, negative:true });
+        pushNotice("Panique", "Les clics deviennent moins efficaces.", "bad");
+      },
+      () => {
+        hurt(14);
+        pushNotice("Toux violente", "Alex perd brutalement des PV.", "bad");
+        flash("red");
+      },
+      () => {
+        heal(20);
+        applyEffect({ id:"med_help", name:"Aide médicale", duration:10, passiveHpMult:1.35, passiveSouffleMult:1.18 });
+        pushNotice("Aide médicale", "Un coup de main providentiel.", "good");
+        flash("blue");
+      },
+      () => {
+        hurt(18);
+        applyEffect({ id:"relapse", name:"Rechute", duration:10, drainAdd:0.8, negative:true });
+        pushNotice("Rechute", "Le corps d’Alex cède encore.", "bad");
+        flash("red");
+      }
+    ];
+    events[Math.floor(Math.random() * events.length)]();
+  }
+
+  function renderEffects() {
+    els.effectsList.innerHTML = "";
+    if (state.run.activeEffects.length === 0) {
+      const pill = document.createElement("div");
+      pill.className = "effect-pill neutral";
+      pill.textContent = "Aucun effet actif";
+      els.effectsList.appendChild(pill);
+      return;
+    }
+    const now = performance.now();
+    state.run.activeEffects
+      .sort((a, b) => a.endsAt - b.endsAt)
+      .forEach(effect => {
+        const pill = document.createElement("div");
+        const bad = effect.negative || (effect.drainAdd || 0) > 0 || (effect.clickHpMult || 1) < 1;
+        const good = !bad && (((effect.drainAdd || 0) < 0) || (effect.clickHpMult || 1) > 1 || (effect.passiveSouffleMult || 1) > 1 || (effect.passiveHpMult || 1) > 1);
+        pill.className = "effect-pill " + (good ? "good" : bad ? "bad" : "neutral");
+        pill.textContent = `${effect.name} · ${Math.max(0, Math.ceil((effect.endsAt - now) / 1000))}s`;
+        els.effectsList.appendChild(pill);
+      });
+  }
+
+  function renderShop() {
+    els.shopList.innerHTML = "";
+    generatorDefs.forEach(def => {
+      const cost = costForGenerator(def);
+      const owned = state.run.generators[def.id] || 0;
+      const item = document.createElement("div");
+      item.className = "shop-item";
+      item.innerHTML = `
+        <div class="shop-top">
+          <div>
+            <div class="shop-name">${def.name}</div>
+            <div class="shop-desc">${def.desc}</div>
+            <div class="shop-meta">+${fmt(def.souffle)} souffle/s · +${fmt(def.hp)} PV/s</div>
+            <div class="shop-owned">Possédé : ${owned}</div>
+          </div>
+          <button class="buy-btn"${state.dead || state.run.souffle < cost ? " disabled" : ""}>${fmt(cost)} souffle</button>
+        </div>
+      `;
+      item.querySelector("button").addEventListener("click", () => {
+        if (state.dead || state.run.souffle < cost) return;
+        state.run.souffle -= cost;
+        state.run.generators[def.id] = owned + 1;
+        pushNotice("Achat", def.name + " installé.", "neutral");
+        renderAll();
+      });
+      els.shopList.appendChild(item);
+    });
+  }
+
+  function renderUpgrades() {
+    els.upgradeList.innerHTML = "";
+    upgradeCategories.forEach(cat => {
+      const block = document.createElement("div");
+      block.className = "category-block";
+      block.innerHTML = `<div class="category-head">${cat.name}</div><div class="category-items"></div>`;
+      const container = block.querySelector(".category-items");
+
+      upgradeDefs.filter(u => u.category === cat.id).forEach(up => {
+        const bought = state.run.purchasedUpgrades.includes(up.id);
+        const affordable = state.run.souffle >= up.cost;
+        const item = document.createElement("div");
+        item.className = "shop-item" + (bought ? " bought" : "");
+        item.innerHTML = `
+          <div class="shop-top">
+            <div>
+              <div class="shop-name">${up.name}</div>
+              <div class="shop-desc">${up.desc}</div>
+              <div class="shop-meta">${bought ? "Amélioration achetée ✓" : fmt(up.cost) + " souffle"}</div>
+              ${bought ? '<div class="shop-owned">Cette amélioration a déjà été achetée.</div>' : ''}
+            </div>
+            <button class="buy-btn"${bought || state.dead || !affordable ? " disabled" : ""}>${bought ? "ACHETÉE" : "Acheter"}</button>
+          </div>
+        `;
+        item.querySelector("button").addEventListener("click", () => {
+          if (bought || state.dead || state.run.souffle < up.cost) return;
+          state.run.souffle -= up.cost;
+          state.run.purchasedUpgrades.push(up.id);
+          up.apply(state.run);
+          pushNotice("Amélioration achetée", up.name + " activée. Effet appliqué immédiatement.", "good");
+          spawnFloat(innerWidth * 0.78, innerHeight * 0.40, "✓ " + up.name, "good");
+          maybeUnlockAchievements();
+          renderAll();
+        });
+        container.appendChild(item);
+      });
+
+      els.upgradeList.appendChild(block);
+    });
+  }
+
+  function renderAll() {
+    const d = getDerived();
+    const maxHp = getMaxHp();
+    const hpPct = Math.max(0, Math.min(100, (state.run.hp / maxHp) * 100));
+
+    els.hpText.textContent = fmt(state.run.hp) + " PV";
+    els.maxHpText.textContent = fmt(maxHp);
+    els.hpFill.style.width = hpPct + "%";
+    els.drainText.textContent = "perte / sec : -" + fmt(d.drain) + " · regen / sec : +" + fmt(d.passiveHp);
+    els.souffleText.textContent = fmt(state.run.souffle);
+    els.clickGainText.textContent = "+" + fmt(d.clickHp) + " PV / +" + fmt(d.clickSouffle) + " souffle";
+    els.passiveText.textContent = fmt(d.passiveSouffle) + " souffle/s · " + fmt(d.passiveHp) + " PV/s";
+    els.stateText.textContent = hpPct <= 20 ? "Critique" : (d.drain > d.passiveHp ? "Fragile" : "Stable");
+    els.asthmaText.textContent = fmt(state.run.asthmaIntensity);
+    els.comboText.textContent = "x" + getComboMultiplier().toFixed(2);
+    els.ventolineInfo.textContent = state.run.ventolineCooldown > 0
+      ? "recharge : " + fmt(state.run.ventolineCooldown) + "s"
+      : "tolérance : " + Math.round(state.run.ventolineTolerance * 100) + "%";
+    els.defibInfo.textContent = "charges : " + state.run.defibCharges + " · achat : " + fmt(260 + state.run.defibCharges * 180) + " souffle";
+
+    if (hpPct <= 20) {
+      els.hpPanel.classList.add("critical");
+      els.stageMessage.textContent = "Alex est à deux doigts de céder.";
+    } else {
+      els.hpPanel.classList.remove("critical");
+      if (state.run.asthmaIntensity >= 5) {
+        els.stageMessage.textContent = "L’asthme prend le dessus. Il faut casser la montée.";
+      } else if (d.drain > d.passiveHp + d.clickHp * 0.15) {
+        els.stageMessage.textContent = "La perte dépasse ton contrôle. Achète ou clique davantage.";
+      } else if (state.run.souffle > 1000) {
+        els.stageMessage.textContent = "Tu commences à dominer la run.";
+      } else {
+        els.stageMessage.textContent = "Le rythme est fragile, mais tu tiens.";
+      }
+    }
+
+    qs("#ventolineBtn").disabled = state.dead || state.run.ventolineCooldown > 0;
+    qs("#walkBtn").disabled = state.dead || state.run.walkCooldown > 0;
+    qs("#runBtn").disabled = state.dead || state.run.runCooldown > 0;
+    qs("#smokeBtn").disabled = state.dead || state.run.smokeCooldown > 0;
+    qs("#defibBtn").disabled = state.dead || state.run.souffle < (260 + state.run.defibCharges * 180);
+
+    renderEffects();
+    renderAchievements();
+    renderShop();
+    renderUpgrades();
+  }
+
+  qsa(".tab-btn").forEach(btn => btn.addEventListener("click", () => {
+    qsa(".tab-btn").forEach(b => b.classList.remove("active"));
+    qsa(".tab-content").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    qs("#" + btn.dataset.tab).classList.add("active");
+  }));
+
+  qs("#lungButton").addEventListener("click", clickLung);
+  qs("#ventolineBtn").addEventListener("click", useVentoline);
+  qs("#defibBtn").addEventListener("click", buyDefibCharge);
+  qs("#walkBtn").addEventListener("click", doWalk);
+  qs("#runBtn").addEventListener("click", doRun);
+  qs("#smokeBtn").addEventListener("click", doSmoke);
+  qs("#manualResetBtn").addEventListener("click", () => {
+    resetRun();
+    pushNotice("Run relancée", "Tu repars depuis le début.", "neutral");
+  });
+  qs("#retryBtn").addEventListener("click", resetRun);
+  qs("#resetSaveBtn").addEventListener("click", hardReset);
+
+  function tick(now) {
+    const dt = Math.min(0.25, (now - last) / 1000);
+    last = now;
+
+    if (!state.dead) {
+      state.run.timeAlive += dt;
+      state.run.ventolineCooldown = Math.max(0, state.run.ventolineCooldown - dt);
+      state.run.walkCooldown = Math.max(0, state.run.walkCooldown - dt);
+      state.run.runCooldown = Math.max(0, state.run.runCooldown - dt);
+      state.run.smokeCooldown = Math.max(0, state.run.smokeCooldown - dt);
+      state.run.ventolineTolerance = Math.max(0, state.run.ventolineTolerance - dt * 0.008);
+      state.run.combo = Math.max(0, state.run.combo - dt * 0.08);
+      state.run.asthmaIntensity = Math.min(10, state.run.asthmaIntensity + state.run.asthmaGrowthRate * dt);
+
+      removeExpiredEffects(now);
+
+      const d = getDerived();
+      if (d.passiveSouffle > 0) addSouffle(d.passiveSouffle * dt);
+      if (d.passiveHp > 0) heal(d.passiveHp * dt);
+      if (d.drain > 0) hurt(d.drain * dt);
+
+      if (state.run.asthmaIntensity > 5 && Math.random() < dt * 0.06) {
+        applyEffect({
+          id:"micro_crisis",
+          name:"Pic d’asthme",
+          duration:5,
+          drainAdd:1.0,
+          clickHpMult:0.88,
+          negative:true
+        });
+      }
+
+      if (now >= nextEventAt) {
+        triggerRandomEvent();
+        nextEventAt = now + Math.max(7000, 15000 + Math.random() * 8000 - state.run.asthmaIntensity * 700);
+      }
+    }
+
+    renderAll();
+    requestAnimationFrame(tick);
+  }
+
+  maybeUnlockAchievements();
+  renderAll();
+  setInterval(saveState, 3000);
+  window.addEventListener("beforeunload", saveState);
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
