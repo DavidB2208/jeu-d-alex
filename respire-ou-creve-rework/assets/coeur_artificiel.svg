@@ -1,0 +1,7 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 300'>
+  <rect width='260' height='300' fill='none'/>
+  <path d='M130 250C50 204 28 164 28 120c0-30 22-52 49-52 21 0 39 12 53 27 14-15 32-27 53-27 27 0 49 22 49 52 0 44-22 84-102 130z' fill='#202631' stroke='#708090' stroke-width='8'/>
+  <path d='M130 236C66 198 48 166 48 128c0-18 16-34 34-34 17 0 31 10 48 30 17-20 31-30 48-30 18 0 34 16 34 34 0 38-18 70-82 108z' fill='#66131e'/>
+  <circle cx='130' cy='146' r='18' fill='#ff524f'/>
+  <path d='M56 144h34M170 168h30M92 86l-10-22M178 88l12-24' stroke='#31d6ff' stroke-width='8' stroke-linecap='round'/>
+</svg>
