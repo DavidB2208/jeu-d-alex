@@ -543,9 +543,10 @@ button{font-family:inherit}
   </section>
 </div>
 
-<script>
+<script type="module">
+import { loadState, saveState, resetRun, hardReset } from "./src/state.js";
+
 (() => {
-  const SAVE_KEY = "respire_ou_creve_save_v9_upgrades_rich";
 
   const generatorDefs = [
     { id:"respire", name:"Respiration contrôlée", baseCost:15, souffle:0.8, hp:0.10, desc:"Routine respiratoire lente mais régulière."},
@@ -640,129 +641,25 @@ button{font-family:inherit}
     hpPanel: qs("#hpPanel")
   };
 
-  function makeRunState() {
-    return {
-      hp: 90,
-      maxHpBase: 100,
-      souffle: 0,
-      lifetimeSouffle: 0,
-      totalClicks: 0,
-      timeAlive: 0,
-      combo: 0,
-      bestHp: 90,
-
-      clickHpBase: 2.6,
-      clickSouffleBase: 1.1,
-      clickMult: 1,
-      critChance: 0,
-      critMult: 1.5,
-
-      basePassiveSouffle: 0.18,
-      passiveSouffleFlat: 0,
-      passiveMult: 1,
-      passiveHpFromSouffleMult: 1,
-      flatHpRegen: 0,
-
-      baseDrain: 2,
-      flatDrainReduction: 0,
-      asthmaIntensity: 0,
-      asthmaGrowthRate: 0.055,
-      asthmaImpactMult: 1,
-
-      eventMalusMult: 1,
-      crisisDurationMult: 1,
-      crisisStability: 0,
-      pollutionProtection: 0,
-
-      ventolinePower: 1,
-      ventolineCooldownMult: 1,
-      ventolineTolerance: 0,
-      ventolineCooldown: 0,
-
-      defibCharges: 0,
-      startingDefib: 0,
-      defibHealMult: 1,
-      defibRecoveryMult: 0,
-
-      walkRewardMult: 1,
-      walkPenaltyMult: 1,
-      runRewardMult: 1,
-      runPenaltyMult: 1,
-      smokePenaltyMult: 1,
-
-      genCostMult: 1,
-      startSouffle: 0,
-      lowHpClickBonus: 0,
-
-      walkCooldown: 0,
-      runCooldown: 0,
-      smokeCooldown: 0,
-
-      generators: Object.fromEntries(generatorDefs.map(g => [g.id, 0])),
-      purchasedUpgrades: [],
-      activeEffects: []
-    };
-  }
-
-  function makeState() {
-    return {
-      unlocked: [],
-      dead: false,
-      run: makeRunState()
-    };
-  }
-
-  let state = loadState();
+  let state = loadState(generatorDefs);
   let last = performance.now();
   let nextEventAt = performance.now() + 16000;
 
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return makeState();
-      const parsed = JSON.parse(raw);
-      const s = makeState();
-      s.unlocked = Array.isArray(parsed.unlocked) ? parsed.unlocked : [];
-      s.dead = false;
-      s.run = Object.assign(makeRunState(), parsed.run || {});
-      s.run.generators = Object.assign(makeRunState().generators, parsed.run?.generators || {});
-      s.run.purchasedUpgrades = Array.isArray(parsed.run?.purchasedUpgrades) ? parsed.run.purchasedUpgrades : [];
-      s.run.activeEffects = [];
-      return s;
-    } catch (e) {
-      console.warn("Save invalid", e);
-      return makeState();
-    }
+  function persistState() {
+    saveState(state);
   }
 
-  function saveState() {
-    const serializable = {
-      unlocked: state.unlocked,
-      run: Object.assign({}, state.run, { activeEffects: [] })
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(serializable));
-  }
-
-  function hardReset() {
-    localStorage.removeItem(SAVE_KEY);
-    state = makeState();
-    state.run.souffle = state.run.startSouffle;
-    renderAll();
-    pushNotice("Sauvegarde réinitialisée", "Tout repart de zéro.", "bad");
-  }
-
-  function resetRun() {
-    const unlocked = state.unlocked.slice();
-    const startSouffle = state.run.startSouffle;
-    const startingDefib = state.run.startingDefib;
-    state = makeState();
-    state.unlocked = unlocked;
-    state.run.souffle = startSouffle;
-    state.run.defibCharges = startingDefib;
-    state.dead = false;
+  function restartRun() {
+    state = resetRun(state, generatorDefs);
     els.deathOverlay.classList.remove("show");
     renderAll();
-    saveState();
+    persistState();
+  }
+
+  function clearSave() {
+    state = hardReset(generatorDefs);
+    renderAll();
+    pushNotice("Sauvegarde réinitialisée", "Tout repart de zéro.", "bad");
   }
 
   function costForGenerator(def) {
@@ -1276,11 +1173,11 @@ button{font-family:inherit}
   qs("#runBtn").addEventListener("click", doRun);
   qs("#smokeBtn").addEventListener("click", doSmoke);
   qs("#manualResetBtn").addEventListener("click", () => {
-    resetRun();
+    restartRun();
     pushNotice("Run relancée", "Tu repars depuis le début.", "neutral");
   });
-  qs("#retryBtn").addEventListener("click", resetRun);
-  qs("#resetSaveBtn").addEventListener("click", hardReset);
+  qs("#retryBtn").addEventListener("click", restartRun);
+  qs("#resetSaveBtn").addEventListener("click", clearSave);
 
   function tick(now) {
     const dt = Math.min(0.25, (now - last) / 1000);
@@ -1326,8 +1223,8 @@ button{font-family:inherit}
 
   maybeUnlockAchievements();
   renderAll();
-  setInterval(saveState, 3000);
-  window.addEventListener("beforeunload", saveState);
+  setInterval(persistState, 3000);
+  window.addEventListener("beforeunload", persistState);
   requestAnimationFrame(tick);
 })();
 </script>
