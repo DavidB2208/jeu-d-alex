@@ -545,6 +545,7 @@ button{font-family:inherit}
 
 <script type="module">
 import { loadState, saveState, resetRun, hardReset } from "./src/state.js";
+import { BUY_BLOCK_REASONS, canBuyGenerator, canBuyUpgrade } from "./src/economy.js";
 
 (() => {
 
@@ -660,11 +661,6 @@ import { loadState, saveState, resetRun, hardReset } from "./src/state.js";
     state = hardReset(generatorDefs);
     renderAll();
     pushNotice("Sauvegarde réinitialisée", "Tout repart de zéro.", "bad");
-  }
-
-  function costForGenerator(def) {
-    const owned = state.run.generators[def.id] || 0;
-    return Math.floor(def.baseCost * state.run.genCostMult * Math.pow(1.16, owned));
   }
 
   function getComboMultiplier() {
@@ -1044,7 +1040,8 @@ import { loadState, saveState, resetRun, hardReset } from "./src/state.js";
   function renderShop() {
     els.shopList.innerHTML = "";
     generatorDefs.forEach(def => {
-      const cost = costForGenerator(def);
+      const buy = canBuyGenerator(state, def);
+      const cost = buy.cost;
       const owned = state.run.generators[def.id] || 0;
       const item = document.createElement("div");
       item.className = "shop-item";
@@ -1056,12 +1053,13 @@ import { loadState, saveState, resetRun, hardReset } from "./src/state.js";
             <div class="shop-meta">+${fmt(def.souffle)} souffle/s · +${fmt(def.hp)} PV/s</div>
             <div class="shop-owned">Possédé : ${owned}</div>
           </div>
-          <button class="buy-btn"${state.dead || state.run.souffle < cost ? " disabled" : ""}>${fmt(cost)} souffle</button>
+          <button class="buy-btn"${buy.ok ? "" : " disabled"}>${fmt(cost)} souffle</button>
         </div>
       `;
       item.querySelector("button").addEventListener("click", () => {
-        if (state.dead || state.run.souffle < cost) return;
-        state.run.souffle -= cost;
+        const currentBuy = canBuyGenerator(state, def);
+        if (!currentBuy.ok) return;
+        state.run.souffle -= currentBuy.cost;
         state.run.generators[def.id] = owned + 1;
         pushNotice("Achat", def.name + " installé.", "neutral");
         renderAll();
@@ -1079,8 +1077,8 @@ import { loadState, saveState, resetRun, hardReset } from "./src/state.js";
       const container = block.querySelector(".category-items");
 
       upgradeDefs.filter(u => u.category === cat.id).forEach(up => {
-        const bought = state.run.purchasedUpgrades.includes(up.id);
-        const affordable = state.run.souffle >= up.cost;
+        const buy = canBuyUpgrade(state, up);
+        const bought = buy.reason === BUY_BLOCK_REASONS.ALREADY_BOUGHT;
         const item = document.createElement("div");
         item.className = "shop-item" + (bought ? " bought" : "");
         item.innerHTML = `
@@ -1088,15 +1086,16 @@ import { loadState, saveState, resetRun, hardReset } from "./src/state.js";
             <div>
               <div class="shop-name">${up.name}</div>
               <div class="shop-desc">${up.desc}</div>
-              <div class="shop-meta">${bought ? "Amélioration achetée ✓" : fmt(up.cost) + " souffle"}</div>
+              <div class="shop-meta">${bought ? "Amélioration achetée ✓" : fmt(buy.cost) + " souffle"}</div>
               ${bought ? '<div class="shop-owned">Cette amélioration a déjà été achetée.</div>' : ''}
             </div>
-            <button class="buy-btn"${bought || state.dead || !affordable ? " disabled" : ""}>${bought ? "ACHETÉE" : "Acheter"}</button>
+            <button class="buy-btn"${buy.ok ? "" : " disabled"}>${bought ? "ACHETÉE" : "Acheter"}</button>
           </div>
         `;
         item.querySelector("button").addEventListener("click", () => {
-          if (bought || state.dead || state.run.souffle < up.cost) return;
-          state.run.souffle -= up.cost;
+          const currentBuy = canBuyUpgrade(state, up);
+          if (!currentBuy.ok) return;
+          state.run.souffle -= currentBuy.cost;
           state.run.purchasedUpgrades.push(up.id);
           up.apply(state.run);
           pushNotice("Amélioration achetée", up.name + " activée. Effet appliqué immédiatement.", "good");
