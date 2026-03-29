@@ -546,6 +546,7 @@ button{font-family:inherit}
 <script type="module">
 import { loadState, saveState, resetRun, hardReset } from "./src/state.js";
 import { BUY_BLOCK_REASONS, canBuyGenerator, canBuyUpgrade } from "./src/economy.js";
+import { applyEffect as computeAppliedEffect, getComboMultiplier, getDerived, removeExpiredEffects as computeRemainingEffects, triggerRandomEvent as pickRandomEvent, tryDefibOrDie as resolveDefibOrDeath } from "./src/gameplay.js";
 
 (() => {
 
@@ -663,56 +664,8 @@ import { BUY_BLOCK_REASONS, canBuyGenerator, canBuyUpgrade } from "./src/economy
     pushNotice("Sauvegarde réinitialisée", "Tout repart de zéro.", "bad");
   }
 
-  function getComboMultiplier() {
-    return 1 + Math.min(state.run.combo, 20) * 0.04;
-  }
-
   function getMaxHp() {
     return state.run.maxHpBase;
-  }
-
-  function getDerived() {
-    const effect = {
-      drainAdd: 0,
-      drainMul: 1,
-      clickHpMult: 1,
-      clickSouffleMult: 1,
-      passiveHpMult: 1,
-      passiveSouffleMult: 1,
-      flatHpRegen: 0
-    };
-
-    for (const ef of state.run.activeEffects) {
-      effect.drainAdd += ef.drainAdd || 0;
-      effect.drainMul *= ef.drainMul || 1;
-      effect.clickHpMult *= ef.clickHpMult || 1;
-      effect.clickSouffleMult *= ef.clickSouffleMult || 1;
-      effect.passiveHpMult *= ef.passiveHpMult || 1;
-      effect.passiveSouffleMult *= ef.passiveSouffleMult || 1;
-      effect.flatHpRegen += ef.flatHpRegen || 0;
-    }
-
-    let passiveSouffleBase = state.run.basePassiveSouffle + state.run.passiveSouffleFlat + (state.run.combo * 0.012);
-    let passiveHpBase = 0;
-    for (const g of generatorDefs) {
-      const owned = state.run.generators[g.id] || 0;
-      passiveSouffleBase += owned * g.souffle;
-      passiveHpBase += owned * g.hp;
-    }
-
-    let clickHp = state.run.clickHpBase * state.run.clickMult * getComboMultiplier() * effect.clickHpMult;
-    if (state.run.lowHpClickBonus > 0 && state.run.hp <= getMaxHp() * 0.25) {
-      clickHp *= (1 + state.run.lowHpClickBonus);
-    }
-
-    let clickSouffle = state.run.clickSouffleBase * state.run.clickMult * getComboMultiplier() * effect.clickSouffleMult;
-    const passiveSouffle = passiveSouffleBase * state.run.passiveMult * effect.passiveSouffleMult;
-    const passiveHpFromSouffle = passiveSouffle * 0.08 * state.run.passiveHpFromSouffleMult;
-    const passiveHp = passiveHpBase * state.run.passiveMult * effect.passiveHpMult + state.run.flatHpRegen + effect.flatHpRegen + passiveHpFromSouffle;
-    const asthmaDrain = state.run.asthmaIntensity * state.run.asthmaImpactMult;
-    const drain = Math.max(0, ((state.run.baseDrain + asthmaDrain + effect.drainAdd) * effect.drainMul) - state.run.flatDrainReduction);
-
-    return { clickHp, clickSouffle, passiveSouffle, passiveHp, drain, asthmaDrain };
   }
 
   function fmt(n) {
@@ -739,53 +692,31 @@ import { BUY_BLOCK_REASONS, canBuyGenerator, canBuyUpgrade } from "./src/economy
     }
   }
 
-  function softenNegativeMultiplier(value) {
-    if (value >= 1) return value;
-    return value + (1 - value) * state.run.crisisStability;
-  }
-
   function applyEffect(effect) {
-    const now = performance.now();
-    const adjusted = { ...effect };
-    if (adjusted.negative) {
-      adjusted.duration = adjusted.duration * state.run.crisisDurationMult;
-      if (adjusted.drainAdd) adjusted.drainAdd *= state.run.eventMalusMult;
-      if (adjusted.clickHpMult) adjusted.clickHpMult = softenNegativeMultiplier(adjusted.clickHpMult);
-      if (adjusted.clickSouffleMult) adjusted.clickSouffleMult = softenNegativeMultiplier(adjusted.clickSouffleMult);
-      if (adjusted.passiveSouffleMult) adjusted.passiveSouffleMult = softenNegativeMultiplier(adjusted.passiveSouffleMult);
-      if (adjusted.passiveHpMult) adjusted.passiveHpMult = softenNegativeMultiplier(adjusted.passiveHpMult);
-    }
-    adjusted.endsAt = now + adjusted.duration * 1000;
-
-    const idx = state.run.activeEffects.findIndex(e => e.id === adjusted.id);
-    if (idx >= 0) state.run.activeEffects[idx] = adjusted;
-    else state.run.activeEffects.push(adjusted);
+    state.run.activeEffects = computeAppliedEffect({
+      activeEffects: state.run.activeEffects,
+      effect,
+      runState: state.run,
+      nowMs: performance.now()
+    });
   }
 
   function removeExpiredEffects(now) {
-    state.run.activeEffects = state.run.activeEffects.filter(e => e.endsAt > now);
+    state.run.activeEffects = computeRemainingEffects(state.run.activeEffects, now);
   }
 
   function tryDefibOrDie() {
-    if (state.run.defibCharges > 0) {
-      state.run.defibCharges -= 1;
-      const restored = getMaxHp() * (0.42 * state.run.defibHealMult);
-      state.run.hp = Math.min(getMaxHp(), restored);
-      const postShockPenalty = 0.85 * (1 - state.run.defibRecoveryMult);
-      applyEffect({
-        id:"defib_shock",
-        name:"Récupération post-choc",
-        duration:9,
-        drainAdd:postShockPenalty,
-        clickHpMult:0.88,
-        negative:true
-      });
+    const resolution = resolveDefibOrDeath(state.run);
+    state.run = resolution.nextRunState;
+
+    if (resolution.outcome === "defib") {
+      applyEffect(resolution.effect);
       flash("blue");
       pushNotice("Défibrillateur déclenché", "Alex revient in extremis.", "good");
-      spawnFloat(innerWidth * 0.56, innerHeight * 0.58, "+" + fmt(restored) + " PV", "blue");
+      spawnFloat(innerWidth * 0.56, innerHeight * 0.58, "+" + fmt(resolution.restoredHp) + " PV", "blue");
       return;
     }
-    state.run.hp = 0;
+
     state.dead = true;
     els.deathOverlay.classList.add("show");
     flash("red");
@@ -841,7 +772,7 @@ import { BUY_BLOCK_REASONS, canBuyGenerator, canBuyUpgrade } from "./src/economy
 
   function clickLung() {
     if (state.dead) return;
-    const d = getDerived();
+    const d = getDerived(state.run, generatorDefs);
     let clickHp = d.clickHp;
     let clickSouffle = d.clickSouffle;
     let tone = "good";
@@ -967,52 +898,15 @@ import { BUY_BLOCK_REASONS, canBuyGenerator, canBuyUpgrade } from "./src/economy
 
   function triggerRandomEvent() {
     if (state.dead) return;
-    const pollutionDrain = 1.55 * (1 - state.run.pollutionProtection);
 
-    const events = [
-      () => {
-        applyEffect({ id:"asthma_crisis", name:"Crise d’asthme", duration:8, drainAdd:2.2, clickHpMult:0.72, passiveSouffleMult:0.84, negative:true });
-        hurt(10);
-        pushNotice("Crise d’asthme", "La perte de PV s’emballe.", "bad");
-        flash("red");
-      },
-      () => {
-        applyEffect({ id:"adrenaline", name:"Adrénaline", duration:10, clickHpMult:1.6, clickSouffleMult:1.4, passiveSouffleMult:1.2 });
-        pushNotice("Montée d’adrénaline", "Les clics rapportent beaucoup plus.", "good");
-        flash("blue");
-      },
-      () => {
-        applyEffect({ id:"clean_air", name:"Air pur", duration:12, drainAdd:-1.25 });
-        pushNotice("Air pur", "Alex respire un peu mieux.", "good");
-      },
-      () => {
-        applyEffect({ id:"pollution", name:"Pollution", duration:12, drainAdd:pollutionDrain, negative:true });
-        pushNotice("Pollution", "L’air devient irrespirable.", "bad");
-        flash("red");
-      },
-      () => {
-        applyEffect({ id:"panic2", name:"Panique", duration:6, clickHpMult:0.6, negative:true });
-        pushNotice("Panique", "Les clics deviennent moins efficaces.", "bad");
-      },
-      () => {
-        hurt(14);
-        pushNotice("Toux violente", "Alex perd brutalement des PV.", "bad");
-        flash("red");
-      },
-      () => {
-        heal(20);
-        applyEffect({ id:"med_help", name:"Aide médicale", duration:10, passiveHpMult:1.35, passiveSouffleMult:1.18 });
-        pushNotice("Aide médicale", "Un coup de main providentiel.", "good");
-        flash("blue");
-      },
-      () => {
-        hurt(18);
-        applyEffect({ id:"relapse", name:"Rechute", duration:10, drainAdd:0.8, negative:true });
-        pushNotice("Rechute", "Le corps d’Alex cède encore.", "bad");
-        flash("red");
-      }
-    ];
-    events[Math.floor(Math.random() * events.length)]();
+    const event = pickRandomEvent(state.run);
+    for (const effect of event.effects || []) {
+      applyEffect(effect);
+    }
+    if (event.heal) heal(event.heal);
+    if (event.hurt) hurt(event.hurt);
+    if (event.notice) pushNotice(event.notice.title, event.notice.body, event.notice.tone);
+    if (event.flash) flash(event.flash);
   }
 
   function renderEffects() {
@@ -1111,7 +1005,7 @@ import { BUY_BLOCK_REASONS, canBuyGenerator, canBuyUpgrade } from "./src/economy
   }
 
   function renderAll() {
-    const d = getDerived();
+    const d = getDerived(state.run, generatorDefs);
     const maxHp = getMaxHp();
     const hpPct = Math.max(0, Math.min(100, (state.run.hp / maxHp) * 100));
 
@@ -1124,7 +1018,7 @@ import { BUY_BLOCK_REASONS, canBuyGenerator, canBuyUpgrade } from "./src/economy
     els.passiveText.textContent = fmt(d.passiveSouffle) + " souffle/s · " + fmt(d.passiveHp) + " PV/s";
     els.stateText.textContent = hpPct <= 20 ? "Critique" : (d.drain > d.passiveHp ? "Fragile" : "Stable");
     els.asthmaText.textContent = fmt(state.run.asthmaIntensity);
-    els.comboText.textContent = "x" + getComboMultiplier().toFixed(2);
+    els.comboText.textContent = "x" + getComboMultiplier(state.run).toFixed(2);
     els.ventolineInfo.textContent = state.run.ventolineCooldown > 0
       ? "recharge : " + fmt(state.run.ventolineCooldown) + "s"
       : "tolérance : " + Math.round(state.run.ventolineTolerance * 100) + "%";
@@ -1194,7 +1088,7 @@ import { BUY_BLOCK_REASONS, canBuyGenerator, canBuyUpgrade } from "./src/economy
 
       removeExpiredEffects(now);
 
-      const d = getDerived();
+      const d = getDerived(state.run, generatorDefs);
       if (d.passiveSouffle > 0) addSouffle(d.passiveSouffle * dt);
       if (d.passiveHp > 0) heal(d.passiveHp * dt);
       if (d.drain > 0) hurt(d.drain * dt);
