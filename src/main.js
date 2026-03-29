@@ -13,7 +13,7 @@ import { renderShop } from "./ui/shop.js";
 import { renderUpgrades } from "./ui/upgrades.js";
 import { renderEffects } from "./ui/effects.js";
 
-(() => {
+function initGame() {
   const generatorDefs = [
     { id: "respire", name: "Respiration contrôlée", baseCost: 15, souffle: 0.8, hp: 0.10, desc: "Routine respiratoire lente mais régulière." },
     { id: "auto_vento", name: "Ventoline automatique", baseCost: 70, souffle: 2.0, hp: 0.26, desc: "Micro-doseurs qui aident Alex à tenir." },
@@ -453,4 +453,11 @@ import { renderEffects } from "./ui/effects.js";
   setInterval(persistState, 3000);
   window.addEventListener("beforeunload", persistState);
   requestAnimationFrame(tick);
-})();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initGame, { once: true });
+} else {
+  initGame();
+}
+
