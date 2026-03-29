@@ -1,7 +1,7 @@
 const BLOCK_MESSAGES = {
   dead: "Run terminée",
   insufficient: "Souffle insuffisant",
-  already_bought: "Déjà achetée"
+  already_bought: "Déjà active"
 };
 
 export function renderUpgrades({
@@ -25,7 +25,7 @@ export function renderUpgrades({
     upgradeDefs.filter(up => up.category === cat.id).forEach(up => {
       const buy = canBuyUpgrade(state, up);
       const bought = buy.reason === buyBlockReasons.ALREADY_BOUGHT;
-      const reasonLabel = buy.reason ? BLOCK_MESSAGES[buy.reason] : "";
+      const reasonLabel = buy.reason && !bought ? BLOCK_MESSAGES[buy.reason] : "";
 
       const item = document.createElement("div");
       item.className = `shop-item${bought ? " bought" : ""}`;
@@ -34,8 +34,8 @@ export function renderUpgrades({
           <div>
             <div class="shop-name">${up.name}</div>
             <div class="shop-desc">${up.desc}</div>
-            <div class="shop-meta">${bought ? "Amélioration achetée ✓" : `${fmt(buy.cost)} souffle`}</div>
-            <div class="shop-owned">${bought ? "Cette amélioration a déjà été achetée." : reasonLabel}</div>
+            <div class="shop-meta">${bought ? "Effet permanent actif" : `${fmt(buy.cost)} souffle`}</div>
+            ${reasonLabel ? `<div class="shop-owned">${reasonLabel}</div>` : ""}
           </div>
           <button class="buy-btn"${buy.ok ? "" : " disabled"}>${bought ? "ACHETÉE" : "Acheter"}</button>
         </div>

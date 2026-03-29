@@ -1,5 +1,5 @@
-export const SAVE_KEY = "respire_ou_creve_save_v9_upgrades_rich";
-const SAVE_VERSION = 1;
+export const SAVE_KEY = "respire_ou_creve_save_v10_crises_hud";
+const SAVE_VERSION = 2;
 
 export function makeRunState(generatorDefs = []) {
   return {
@@ -51,6 +51,16 @@ export function makeRunState(generatorDefs = []) {
     runPenaltyMult: 1,
     smokePenaltyMult: 1,
 
+    crisisMeter: 0,
+    cigaretteStacks: 0,
+    ventolineStacks: 0,
+    majorCrisisCooldown: 0,
+    smokeSurgeMult: 1,
+    ventolineCrashMult: 1,
+    cigaretteStackGainMult: 1,
+    ventolineStackGainMult: 1,
+    crisisDecayMult: 1,
+
     genCostMult: 1,
     startSouffle: 0,
     lowHpClickBonus: 0,
@@ -81,6 +91,9 @@ function migrateSave(parsed) {
 
   if (fromVersion < 1) {
     migrated.saveVersion = 1;
+  }
+  if (fromVersion < 2) {
+    migrated.saveVersion = 2;
   }
 
   return migrated;
